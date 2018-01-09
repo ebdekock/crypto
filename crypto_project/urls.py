@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import url,include
 from django.contrib import admin
+from django.views.generic.base import RedirectView
 
 from spread import views
 
@@ -22,4 +23,6 @@ urlpatterns = [
 	# Enable if admin site is required
     # url(r'^admin/', admin.site.urls),
     url(r'^$', views.index, name='index'),
+    # Redirect all traffic to main url
+    url(r'^.*$', RedirectView.as_view(pattern_name='index', permanent=True))
 ]
