@@ -12,7 +12,7 @@ Local:
 - Python 3
 - Git
 - Selenium and Chrome web-driver
-- Free account on [this](https://www.openexchangerates.org/) site or a different currency exchange API
+- Free account on www.openexchangerates.org or an alternative currency exchange API
 ```
 
 ### Quick Start
