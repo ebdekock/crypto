@@ -1,0 +1,143 @@
+{% load filter_tags %} {% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Crypto Spread</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/spread.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+
+{% if current_exchanges %}
+    <div class="container-fluid"><br>
+        <h4>Price
+            <small>
+                <button class="icon-button" type="button" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-html="true" 
+                    data-content="- Price in ZAR <br> - Not very accurate, hourly intervals <br> - Drag to zoom, right click to reset">
+                <i class='fa fa-info-circle' aria-hidden='true'></i>
+                </button>
+            </small>
+        </h4>
+        <div class="charts" id="spread_chart_div"></div>
+    </div><hr>
+    <div class="container-fluid">
+        <h4>Volume 
+            <small>
+                <button class="icon-button" type="button" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-html="true" 
+                    data-content= "- 24 hour BTC trade volume <br> - Most exchanges do more volume than displayed, this represents closest thing to Luno's ZAR-BTC eg USD-BTC (or Tether-BTC)">
+                <i class='fa fa-info-circle' aria-hidden='true'></i>
+                </button>
+            </small>
+        </h4>
+        <div id="volume_chart_div"></div>
+    </div>
+    <div class="list-group">
+        <a class="list-group-item list-group-item-action flex-column">
+            <div>
+                <h4>Latest Arb</h4>
+            </div>
+            <p class="mb-1">
+                {{ arb_stats.latest_max.exchange }} - R{{ arb_stats.latest_max.price | floatformat:2 | intcomma }}<br> 
+                {{ arb_stats.latest_min.exchange }} - R{{ arb_stats.latest_min.price | floatformat:2 | intcomma }}<br>
+                Percentage: {{ arb_stats.latest_max.price | percentage:arb_stats.latest_min.price}} <br>
+                <small style="color:grey">{{ arb_stats.time | date:"d M Y H:i" }} </small>
+            </p>
+        </a>
+        <a class="list-group-item list-group-item-action flex-column">
+            <div>
+                <h4>Average Arb</h4>
+            </div>
+            <p class="mb-1">
+                {{ arb_stats.average_max.exchange }} - R{{ arb_stats.average_max.price|floatformat:2 | intcomma }}<br> 
+                {{ arb_stats.average_min.exchange }} - R{{ arb_stats.average_min.price|floatformat:2 | intcomma }}<br>
+                Percentage: {{ arb_stats.average_max.price | percentage:arb_stats.average_min.price}} 
+            </p>
+        </a>
+    </div>
+    <footer>
+        <p style="color:grey">
+            <small><br>Idea from <a href="https://www.tokenspread.com/">this guy</a>, frequent arbitrage intervals on <a href="http://nanoparticle.space/lunoarb/">this site</a> and source <a href="https://github.com/ebdekock/crypto">here</a>
+            </small>
+        </p>
+    </footer>
+    <script>
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(draw_spread_chart);
+        function draw_spread_chart() {
+            var formatter = new google.visualization.DateFormat({pattern: "MMM dd - HH:'00'"});
+            var spread_data = new google.visualization.DataTable();
+            spread_data.addColumn('date', 'Time of Day');
+            {% for exchange in current_exchanges %}
+                spread_data.addColumn('number', "{{ exchange }}");
+            {% endfor %}
+            spread_data.addRows([
+                {% for line_data_point in line_graph_data.data_points %}
+                    {{ line_data_point | safe | strip_single_quotes}},
+                {% endfor %}
+            ]);
+            var options = {
+                chartArea: {width: '50%'},
+                hAxis: {
+                    textPosition: 'none',
+                    format: 'HH:mm',
+                    gridlines: {color: 'none'},
+                },
+                vAxis: {
+                    minValue: 0,
+                    viewWindow:{
+                        max: {{ line_graph_data.graph_max }},
+                        min: {{ line_graph_data.graph_min }},
+                    },
+                },
+                interpolateNulls: true,
+                explorer: { 
+                    actions: ['dragToZoom', 'rightClickToReset'],
+                    keepInBounds: true,
+                    maxZoomIn: 10.0},
+                colors: {{ line_graph_data.line_graph_colours | safe}},
+            };
+            var chart = new google.visualization.LineChart(document.getElementById('spread_chart_div'));
+            formatter.format(spread_data, 0);
+            chart.draw(spread_data, options);
+        }
+        google.charts.setOnLoadCallback(draw_volume_chart);
+        function draw_volume_chart() {
+            var volume_data = google.visualization.arrayToDataTable([
+                ['Exchange', 'Volume', { role: 'style' }],
+                {% for bar_data_point in bar_graph_data.data_points %}
+                    {{ bar_data_point | safe }},
+                {% endfor %}
+            ]);
+            var options = {
+                chartArea: {width: '50%'},
+                hAxis: {
+                    minValue: 0
+                },
+                vAxis: {
+                },
+                legend: {position: 'none'},
+            };
+            var chart = new google.visualization.BarChart(document.getElementById('volume_chart_div'));
+            chart.draw(volume_data, options);
+            }
+        $(window).resize(function(){
+            draw_spread_chart();
+            draw_volume_chart();
+        });
+        $(function () {
+            $('[data-toggle="popover"]').popover()
+        })
+    </script>
+{% else %}
+    <p>Database has not yet been populated, please make sure the cron is being run successfully.</p>
+{% endif %}
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+</body>
+</html> 

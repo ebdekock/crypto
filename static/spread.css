@@ -1,0 +1,26 @@
+body {
+    text-align: center;
+}
+
+ .charts {
+  min-height:400px;
+  margin:0 auto;
+ }
+
+ .icon-button {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    border: 0;
+    background: transparent;
+}
+
+ .icon-button:focus {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    border: 0;
+    background: transparent;
+}
