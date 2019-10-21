@@ -35,7 +35,7 @@ from spread.models import Exchange_rate
 # Create logger instance
 logger = logging.getLogger(__name__)
 
-def luno() -> ExchangeData:
+def luno():
     exchange = "Luno"
     currency = "Bitcoin"
     api_url = "https://api.mybitx.com/api/1/ticker?pair=XBTZAR"
